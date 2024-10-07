@@ -17,8 +17,11 @@
 
 struct WSAData TNET_wsaData;
 
+
+
 void TNET_PError0( const char* message, int code ) {
-    printf("TNET ERROR: %s CODE: %d\n", message, code);
+    if ( code == -1 ) printf("TNET ERROR: %s\n", message);
+    else                printf("TNET ERROR: %s CODE: %d\n", message, code);
 }
 int TNET_PError( const char* message ) {
     int code = WSAGetLastError();
@@ -43,6 +46,7 @@ void TNET_Free() {
 SOCKET TNET_socket( const char* address, const char* port ) {
     struct addrinfo
         *result = NULL,
+        *ptr = NULL,
         hints;
 
     ZeroMemory( &hints, sizeof(hints) );
@@ -59,14 +63,68 @@ SOCKET TNET_socket( const char* address, const char* port ) {
         WSACleanup();
         return INVALID_SOCKET;
     }
-    SOCKET newSock = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
-    if (newSock == INVALID_SOCKET) {
-        TNET_PError0("Error at socket()", WSAGetLastError());
+
+    SOCKET sock = INVALID_SOCKET;
+
+    if ( address == NULL ) {
+        // Create a SOCKET for the server to listen for client connections.
+        sock = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
+        if (sock == INVALID_SOCKET) {
+            TNET_PError("Socket failed!");
+            freeaddrinfo(result);
+            WSACleanup();
+            return INVALID_SOCKET;
+        }
+
+        // Setup the TCP listening socket
+        iResult = bind( sock, result->ai_addr, (int)result->ai_addrlen);
+        if (iResult == SOCKET_ERROR) {
+            TNET_PError("Socket bind error!");
+            freeaddrinfo(result);
+            closesocket(sock);
+            WSACleanup();
+            return 1;
+        }
+
         freeaddrinfo(result);
-        WSACleanup(); // keep these
-        return INVALID_SOCKET;
     }
-    return newSock;
+    else {
+        // Attempt to connect to an address until one succeeds
+        for (ptr=result; ptr != NULL; ptr=ptr->ai_next) {
+
+            // Create a SOCKET for connecting to server
+            sock = socket(ptr->ai_family, ptr->ai_socktype, ptr->ai_protocol);
+            if (sock == INVALID_SOCKET) {
+                TNET_PError("Error at socket()");
+                freeaddrinfo(result);
+                WSACleanup(); // keep these
+                return INVALID_SOCKET;
+            }
+
+            // Connect to server.
+            iResult = connect( sock, ptr->ai_addr, (int)ptr->ai_addrlen);
+            if (iResult == SOCKET_ERROR) {
+                closesocket(sock);
+                sock = INVALID_SOCKET;
+                continue;
+            }
+            break;
+        }
+
+        freeaddrinfo(result);
+
+        if (sock == INVALID_SOCKET) {
+            TNET_PError0("Unable to connect to server!", -1 );
+            WSACleanup();
+            return INVALID_SOCKET;
+        }
+    }
+    
+    return sock;
 }
+
+// int TNET_connect( SOCKET sock ) {
+//     if ( connect( sock,  ) )
+// }
 
 #endif

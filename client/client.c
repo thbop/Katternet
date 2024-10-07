@@ -2,9 +2,9 @@
 #include "lib/tnetwork.h"
 
 int main() {
-    printf("Hello World!");
+    // printf("Hello World!\n");
     TNET_Init();
-    SOCKET sock = TNET_socket("127.0.0.1", "5000");
+    SOCKET sock = TNET_socket(NULL, "5000");
 
     TNET_Free();
     return 0;
