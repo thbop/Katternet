@@ -22,8 +22,11 @@ HM HM_init( size_t size ) {
     return (HM){ (HM_pair**)calloc( size, sizeof(HM_pair*) ), size };
 }
 
-void HM_free( HM hashmap ) {
-    free(hashmap.hashmap);
+void HM_free( HM *hashmap ) {
+    for ( size_t i = 0; i < hashmap->size; i++ ) {
+        if ( hashmap->hashmap[i] != NULL ) free(hashmap->hashmap[i]);
+    }
+    free(hashmap->hashmap);
 }
 
 size_t HM_hash( const char* strkey ) {
@@ -49,9 +52,9 @@ size_t HM_hash( const char* strkey ) {
 
 // for ( lastpair = pair; pair->next != NULL; lastpair = pair->next );
 
-#define HM_str_to_hstr( src, dst ) \
-    dst = malloc(sizeof(src)); \
-    strcpy_s(dst, strlen(src), src);
+// #define HM_str_to_hstr( src, dst ) \
+//     dst = malloc(sizeof(src)); \
+//     strcpy_s(dst, strlen(src), src);
 
 
 int HM_set( HM *hashmap, char *strkey, void *item ) {
@@ -65,7 +68,6 @@ int HM_set( HM *hashmap, char *strkey, void *item ) {
     if ( hashmap->hashmap[key] == NULL ) {
         pair = (HM_pair*)calloc(1, sizeof(HM_pair)); // Needs clean up
         pair->item = item;
-        // HM_str_to_hstr(strkey, pair->strkey);
         strcpy_s(pair->strkey, HM_MAX_KEY_LENGTH, strkey);
         hashmap->hashmap[key] = pair;
         // printf("New pair\n");
@@ -73,7 +75,6 @@ int HM_set( HM *hashmap, char *strkey, void *item ) {
     else {
         pair = hashmap->hashmap[key];
         HM_pair *newpair = (HM_pair*)calloc(1, sizeof(HM_pair)); // Needs clean up
-        // HM_str_to_hstr(strkey, newpair->strkey);
         strcpy_s(newpair->strkey, HM_MAX_KEY_LENGTH, strkey);
         newpair->item = item;
         newpair->next = pair;
@@ -82,6 +83,7 @@ int HM_set( HM *hashmap, char *strkey, void *item ) {
     }
     return 0;
 }
+
 
 void *HM_get( HM *hashmap, const char* strkey ) {
     size_t key = HM_hash(strkey) % hashmap->size;

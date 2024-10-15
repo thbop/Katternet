@@ -21,7 +21,7 @@ int main() {
 
     printf("%d\n", *(int*)HM_get(&hashmap, "water"));
 
-    HM_free(hashmap);
+    HM_free(&hashmap);
 
     return 0;
 }
