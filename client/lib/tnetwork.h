@@ -43,7 +43,7 @@ void TNET_Free() {
 }
 
 // If this is a server socket, set the address field as `NULL`
-SOCKET TNET_socket( const char* address, const char* port ) {
+SOCKET TNET_Socket( const char* address, const char* port ) {
     struct addrinfo
         *result = NULL,
         *ptr = NULL,
@@ -123,8 +123,28 @@ SOCKET TNET_socket( const char* address, const char* port ) {
     return sock;
 }
 
-// int TNET_connect( SOCKET sock ) {
-//     if ( connect( sock,  ) )
-// }
+int TNET_Send( SOCKET sock, const char *buffer ) {
+    int iResult = send(sock, buffer, strlen(buffer), 0);
+    if ( iResult == SOCKET_ERROR ) {
+        TNET_PError("Failure to send!");
+        closesocket(sock);
+        WSACleanup();
+        return 1;
+    }
+    return 0;
+}
+
+// Closes connection and cleans up socket
+int TNET_Close( SOCKET sock ) {
+    int iResult = shutdown(sock, SD_SEND);
+    closesocket(sock);
+    WSACleanup();
+    if ( iResult == SOCKET_ERROR ) {
+        TNET_PError("Failure to close connection!");
+        return 1;
+    }
+    return 0;
+}
+
 
 #endif

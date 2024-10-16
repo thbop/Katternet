@@ -50,12 +50,6 @@ size_t HM_hash( const char* strkey ) {
     return key*key2;
 }
 
-// for ( lastpair = pair; pair->next != NULL; lastpair = pair->next );
-
-// #define HM_str_to_hstr( src, dst ) \
-//     dst = malloc(sizeof(src)); \
-//     strcpy_s(dst, strlen(src), src);
-
 
 int HM_set( HM *hashmap, char *strkey, void *item ) {
     if ( strlen(strkey) > HM_MAX_KEY_LENGTH ) {
@@ -96,6 +90,55 @@ void *HM_get( HM *hashmap, const char* strkey ) {
     }
     return NULL;
 }
+
+size_t HM_calc_str_size( HM *hashmap ) {
+    size_t size = 0;
+    for ( size_t i = 0; i < hashmap->size; i++ ) {
+        if ( hashmap->hashmap[i] != NULL ) {
+            HM_pair *pair = hashmap->hashmap[i];
+            do {
+                size += strlen(pair->strkey) + strlen((char*)pair->item) + 2; // Assumes item is string... does not handle other datatypes
+            }
+            while ( pair = pair->next );
+        }
+    }
+    return size;
+}
+
+char *HM_dumps( HM *hashmap ) {
+    char
+        *str = (char*)malloc(HM_calc_str_size(hashmap)),
+        *str_c = str; // Cursor
+
+    for ( size_t i = 0; i < hashmap->size; i++ ) {
+        if ( hashmap->hashmap[i] != NULL ) {
+            HM_pair *pair = hashmap->hashmap[i];
+            do {
+                size_t delta = strlen(pair->strkey);
+                strcpy_s(str_c, delta, pair->strkey);
+                str_c += delta; str_c[0] = ' ';
+                delta = strlen((char*)pair->item); // Also assumes item is string
+                strcpy_s(str_c, delta, (char*)pair->item);
+                str_c += delta; str_c[0] = '\n';
+            }
+            while ( pair = pair->next );
+        }
+    }
+    return str;
+}
+
+    // char f[8] = "aaaa";
+    // char d[8] = "bb";
+
+    // HM hashmap = HM_init(6);
+    // HM_set(&hashmap, "aa", f);
+    // HM_set(&hashmap, "bb", d);
+
+    // // printf("%s\n", HM_get(&hashmap, "water"));
+    // char *hm_s = HM_dumps(&hashmap);
+    // printf("%s\n", hm_s);
+
+    // HM_free(&hashmap);
 
 
 #endif

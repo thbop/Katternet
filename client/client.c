@@ -1,27 +1,23 @@
 #include <stdio.h>
+// #include "lib/core.h"
 #include "lib/tnetwork.h"
 // #include "lib/application.h"
-#include "lib/hashmap.h"
+// #include "lib/hashmap.h"
 
 int main() {
-    // printf("Hello World!\n");
-    // TNET_Init();
-    // SOCKET sock = TNET_socket("127.0.0.1", "5000");
+    TNET_Init();
+    SOCKET sock = TNET_Socket("127.0.0.1", "5000");
+    char buf[100];
 
-    // TNET_Free();
+    while ( strncmp(buf, "quit", 5) ) {
+        printf("> ");
+        fgets(buf, 100, stdin);
+        buf[strlen(buf)-1] = 0;
+        TNET_Send(sock, buf);
+    }
 
-    int a = 12;
-    int b = 34;
-
-    HM hashmap = HM_init(6);
-    HM_set(&hashmap, "number", &a);
-    HM_set(&hashmap, "water", &b);
-
-    
-
-    printf("%d\n", *(int*)HM_get(&hashmap, "water"));
-
-    HM_free(&hashmap);
+    TNET_Close(sock);
+    TNET_Free();
 
     return 0;
 }
