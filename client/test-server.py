@@ -13,6 +13,9 @@ def connection( conn: socket.socket, conn_addr):
         except ConnectionAbortedError:
             print(f'Disconnected from {conn_addr[0]}:{conn_addr[1]}.')
             break
+        except ConnectionResetError:
+            print(f'Connection reset error from {conn_addr[0]}:{conn_addr[1]}.')
+            break
     
     conn.close()
 

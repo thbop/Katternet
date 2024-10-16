@@ -15,6 +15,8 @@
 
 #pragma comment(lib, "Ws2_32.lib")
 
+#define TNET_BUF_LEN 1024
+
 struct WSAData TNET_wsaData;
 
 
@@ -134,16 +136,35 @@ int TNET_Send( SOCKET sock, const char *buffer ) {
     return 0;
 }
 
+
 // Closes connection and cleans up socket
 int TNET_Close( SOCKET sock ) {
     int iResult = shutdown(sock, SD_SEND);
     closesocket(sock);
     WSACleanup();
     if ( iResult == SOCKET_ERROR ) {
-        TNET_PError("Failure to close connection!");
+        TNET_PError("Failure when closing connection!");
         return 1;
     }
     return 0;
+}
+
+typedef enum TNET_Recv_Res {
+    TNET_RR_CONNECTED,
+    TNET_RR_DISCONNECTED,
+    TNET_RR_ERROR
+} TNET_Recv_Res;
+
+TNET_Recv_Res TNET_Recv( SOCKET sock, char *buf ) {
+    int iResult = recv( sock, buf, TNET_BUF_LEN, 0 );
+    if      ( iResult > 0  )                     return TNET_RR_CONNECTED;
+    else if ( iResult == 0 ) { TNET_Close(sock); return TNET_RR_DISCONNECTED; }
+    else {
+        TNET_PError("Recv failed!");
+        closesocket(sock);
+        WSACleanup();
+        return TNET_RR_ERROR;
+    }
 }
 
 
