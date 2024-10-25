@@ -3,6 +3,11 @@
 
 // A hopefully simple networking library to deal with TCP sockets
 
+#include <stdio.h>
+
+
+#ifdef _WIN32
+
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #endif
@@ -11,41 +16,62 @@
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #include <iphlpapi.h>
-#include <stdio.h>
 
 #pragma comment(lib, "Ws2_32.lib")
 
-#define TNET_BUF_LEN 1024
-
 struct WSAData TNET_wsaData;
+
+
+#endif
+#ifdef linux
+#include <netinet/in.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/socket.h>
+#include <unistd.h>
+#define SOCKET int
+#endif
+
+
+#define TNET_BUF_LEN 1024
 
 
 
 void TNET_PError0( const char* message, int code ) {
     if ( code == -1 ) printf("TNET ERROR: %s\n", message);
-    else                printf("TNET ERROR: %s CODE: %d\n", message, code);
+    else              printf("TNET ERROR: %s CODE: %d\n", message, code);
 }
 int TNET_PError( const char* message ) {
+#ifdef _WIN32
     int code = WSAGetLastError();
+#endif
+#ifdef linux
+    int code = 1; // TEMP
+#endif
     TNET_PError0( message, code );
     return code;
 }
 
 int TNET_Init() {
+#ifdef _WIN32
     // Initialize Winsock
     int iResult = WSAStartup( MAKEWORD(2,2), &TNET_wsaData );
     if ( iResult != 0 ) {
         TNET_PError0( "WSAStartup failed!", iResult );
         return 1;
     }
+#endif
 }
 
 void TNET_Free() {
+#ifdef _WIN32
     WSACleanup();
+#endif
 }
 
 // If this is a server socket, set the address field as `NULL`
 SOCKET TNET_Socket( const char* address, const char* port ) {
+#ifdef _WIN32
     struct addrinfo
         *result = NULL,
         *ptr = NULL,
@@ -123,9 +149,14 @@ SOCKET TNET_Socket( const char* address, const char* port ) {
     }
     
     return sock;
+#endif
+#ifdef linux
+    return 0;
+#endif
 }
 
 int TNET_Send( SOCKET sock, const char *buffer ) {
+#ifdef _WIN32
     int iResult = send(sock, buffer, strlen(buffer), 0);
     if ( iResult == SOCKET_ERROR ) {
         TNET_PError("Failure to send!");
@@ -133,12 +164,14 @@ int TNET_Send( SOCKET sock, const char *buffer ) {
         WSACleanup();
         return 1;
     }
+#endif
     return 0;
 }
 
 
 // Closes connection and cleans up socket
 int TNET_Close( SOCKET sock ) {
+#ifdef _WIN32
     int iResult = shutdown(sock, SD_SEND);
     closesocket(sock);
     WSACleanup();
@@ -146,6 +179,7 @@ int TNET_Close( SOCKET sock ) {
         TNET_PError("Failure when closing connection!");
         return 1;
     }
+#endif
     return 0;
 }
 
@@ -156,6 +190,7 @@ typedef enum TNET_Recv_Res {
 } TNET_Recv_Res;
 
 TNET_Recv_Res TNET_Recv( SOCKET sock, char *buf ) {
+#ifdef _WIN32
     int iResult = recv( sock, buf, TNET_BUF_LEN, 0 );
     if      ( iResult > 0  )                     return TNET_RR_CONNECTED;
     else if ( iResult == 0 ) { TNET_Close(sock); return TNET_RR_DISCONNECTED; }
@@ -165,6 +200,7 @@ TNET_Recv_Res TNET_Recv( SOCKET sock, char *buf ) {
         WSACleanup();
         return TNET_RR_ERROR;
     }
+#endif
 }
 
 
