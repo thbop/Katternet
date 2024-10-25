@@ -3,8 +3,11 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 
-#define HM_MAX_KEY_LENGTH 16
+#define HM_MAX_KEY_LENGTH       16
+#define HM_MAX_FILE_LINE_LENGTH 128
+#define HM_MAX_STR_ITEM_LENGTH  HM_MAX_FILE_LINE_LENGTH-HM_MAX_KEY_LENGTH-2
 
 typedef struct HM_pair {
     size_t key;
@@ -22,7 +25,7 @@ HM HM_init( size_t size ) {
     return (HM){ (HM_pair**)calloc( size, sizeof(HM_pair*) ), size };
 }
 
-void HM_free( HM *hashmap ) {
+void HM_free( HM *hashmap, bool free_items ) {
     for ( size_t i = 0; i < hashmap->size; i++ ) {
         if ( hashmap->hashmap[i] != NULL ) free(hashmap->hashmap[i]);
     }
@@ -50,7 +53,6 @@ size_t HM_hash( const char* strkey ) {
     return key*key2;
 }
 
-
 int HM_set( HM *hashmap, char *strkey, void *item ) {
     if ( strlen(strkey) > HM_MAX_KEY_LENGTH ) {
         printf("HASHMAP ERROR: Key \"%s\" length exceeds HM_MAX_KEY_LENGTH = %d!\n", strkey, HM_MAX_KEY_LENGTH);
@@ -59,7 +61,7 @@ int HM_set( HM *hashmap, char *strkey, void *item ) {
     size_t key = HM_hash(strkey) % hashmap->size;
     // printf("Create key: %d\n", key);
     HM_pair *pair;
-    if ( hashmap->hashmap[key] == NULL ) {
+    if ( hashmap->hashmap[key] == NULL ) { // strncmp(hashmap->hashmap[key]->key, strkey, HM_MAX_KEY_LENGTH)
         pair = (HM_pair*)calloc(1, sizeof(HM_pair)); // Needs clean up
         pair->item = item;
         strcpy_s(pair->strkey, HM_MAX_KEY_LENGTH, strkey);
@@ -78,6 +80,12 @@ int HM_set( HM *hashmap, char *strkey, void *item ) {
     return 0;
 }
 
+// int HM_set_str( HM *hashmap, char *strkey, char *item ) {
+//     char *buf = calloc(sizeof(item), 1);
+//     strcpy_s(buf, sizeof(item), item);
+//     return HM_set(hashmap, strkey, buf);
+// }
+
 
 void *HM_get( HM *hashmap, const char* strkey ) {
     size_t key = HM_hash(strkey) % hashmap->size;
@@ -91,6 +99,13 @@ void *HM_get( HM *hashmap, const char* strkey ) {
     return NULL;
 }
 
+int HM_set_str( HM *hashmap, char *strkey, char *item, bool free_old ) {
+    if ( free_old ) free(HM_get(hashmap, strkey));
+    char *buf = calloc(sizeof(item), 1);
+    strcpy_s(buf, sizeof(item), item);
+    return HM_set(hashmap, strkey, buf);
+}
+
 size_t HM_calc_str_size( HM *hashmap ) {
     size_t size = 0;
     for ( size_t i = 0; i < hashmap->size; i++ ) {
@@ -102,43 +117,80 @@ size_t HM_calc_str_size( HM *hashmap ) {
             while ( pair = pair->next );
         }
     }
-    return size;
+    return size+1;
 }
 
 char *HM_dumps( HM *hashmap ) {
-    char
-        *str = (char*)malloc(HM_calc_str_size(hashmap)),
-        *str_c = str; // Cursor
+    size_t
+        size = HM_calc_str_size(hashmap),
+        x = 0;
+    char *str = (char*)malloc(size);
 
     for ( size_t i = 0; i < hashmap->size; i++ ) {
         if ( hashmap->hashmap[i] != NULL ) {
             HM_pair *pair = hashmap->hashmap[i];
             do {
-                size_t delta = strlen(pair->strkey);
-                strcpy_s(str_c, delta, pair->strkey);
-                str_c += delta; str_c[0] = ' ';
-                delta = strlen((char*)pair->item); // Also assumes item is string
-                strcpy_s(str_c, delta, (char*)pair->item);
-                str_c += delta; str_c[0] = '\n';
+                CORE_strcpy_d(str, pair->strkey, size, x );
+                x += strlen(pair->strkey);
+                str[x] = ' '; x++;
+                CORE_strcpy_d(str, (char*)pair->item, size, x );
+                x += strlen((char*)pair->item);
+                str[x] = '\n'; x++;
             }
             while ( pair = pair->next );
         }
     }
+    str[x] = 0;
     return str;
 }
 
-    // char f[8] = "aaaa";
-    // char d[8] = "bb";
+int HM_dump( HM *hashmap, const char* filename ) {
+    FILE *fp = fopen(filename, "w");
+    if ( fp == NULL ) return 1;
+    char *str = HM_dumps(hashmap);
+    if (fputs(str, fp) == EOF) {
+        free(str);
+        fclose(fp);
+        return 1;
+    }
 
-    // HM hashmap = HM_init(6);
-    // HM_set(&hashmap, "aa", f);
-    // HM_set(&hashmap, "bb", d);
+    free(str);
+    fclose(fp);
+    return 0;
+}
 
-    // // printf("%s\n", HM_get(&hashmap, "water"));
-    // char *hm_s = HM_dumps(&hashmap);
-    // printf("%s\n", hm_s);
+// Fills an intialized hashmap from a file
+int HM_load( HM *hashmap, const char* filename ) {
+    FILE *fp = fopen(filename, "r");
+    if ( fp == NULL ) return 1;
+    char
+        buf[HM_MAX_FILE_LINE_LENGTH],
+        strkey[HM_MAX_KEY_LENGTH],
+        *item;
 
-    // HM_free(&hashmap);
+    size_t kx, ix;
+    while ( fgets( buf, HM_MAX_FILE_LINE_LENGTH, fp ) ) {
+        kx = ix = 0;
+        if ( strlen(buf) > 3 ) {
+            kx = CORE_find_char(buf, ' ');
+            ix = CORE_find_char(buf, '\n');
+            if ( kx < HM_MAX_KEY_LENGTH ) CORE_strcpy_s( strkey, buf, kx+1, 0 );
+            else { fclose(fp); return 1; }
+
+            item = (char*)calloc(HM_MAX_STR_ITEM_LENGTH, 1);
+            if ( ix < HM_MAX_FILE_LINE_LENGTH ) CORE_strcpy_s( item, buf, ix-kx, kx+1 );
+            else { fclose(fp); free(item); return 1; }
+            
+            // printf("|%s|: |%s|\n", strkey, item);
+            HM_set(hashmap, strkey, item);
+
+            memset(strkey, 0, HM_MAX_KEY_LENGTH);
+        }
+    }
+    fclose(fp);
+    return 0;
+}
+
 
 
 #endif

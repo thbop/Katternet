@@ -1,13 +1,23 @@
 #ifndef APPLICATION_H
 #define APPLICATION_H
 
-// char name[16];
-// printf("Hello, what is your name? ");
-// fgets(name, 16, stdin);
-// name[strlen(name)-1] = 0;
-// printf("\nHello %s!", name);
+#include "core.h"
+#include "tnetwork.h"
+#include "hashmap.h"
 
+struct {
+    SOCKET sock;    // Client socket
+    HM     storage; // Locally stored data
+} APP_state;
 
+int APP_Init() {
+    return
+        TNET_Init();
+}
+
+void APP_Free() {
+    TNET_Free();
+}
 
 
 #endif
