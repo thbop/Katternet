@@ -22,11 +22,12 @@ int main() {
     // TNET_Close(sock);
     // TNET_Free();
 
-    HM hashmap = HM_init(6);
-    HM_load(&hashmap, "data.tstor");
-    HM_set_str(&hashmap, "age", "76", true);
-    HM_dump(&hashmap, "data.tstor");
-    HM_free(&hashmap, true);
+    APP_Init();
+
+    APP_Run();
+
+    APP_Free();
+
 
     return 0;
 }

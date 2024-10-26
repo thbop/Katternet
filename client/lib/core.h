@@ -10,7 +10,7 @@
 
 #define CORE_input( buf, buflen ) \
     fgets(buf, buflen, stdin); \
-    buf[strlen(buf)-1] = 0
+    buf[strlen(buf)-1] = 0 // Remove newline character
 
 void CORE_strcpy_d( char* dst, const char* src, size_t dstlen, size_t dstpos ) {
     for ( size_t i = dstpos; i < dstlen-1; i++ ) {
@@ -19,17 +19,23 @@ void CORE_strcpy_d( char* dst, const char* src, size_t dstlen, size_t dstpos ) {
     }
 }
 
-void CORE_strcpy_s( char* dst, const char* src, size_t dstlen, size_t srcpos ) {
-    for ( size_t i = 0; i < dstlen-1; i++ ) {
-        if ( src[i+srcpos] ) dst[i] = src[i+srcpos];
-        else {dst[i] = 0; i = dstlen;}
-    }
-}
+// void CORE_strcpy_s( char* dst, char* src, size_t dstlen, size_t srcpos ) {
+//     for ( size_t i = 0; i < dstlen-1; i++ ) {
+//         if ( src[i+srcpos] ) dst[i] = src[i+srcpos];
+//         else {dst[i-2] = 0; i = dstlen;}
+//     }
+// }
 
 size_t CORE_find_char( char *str, char c ) {
     for ( size_t i = 0; i < strlen(str); i++ ) {
         if ( c == str[i] ) return i;
     }
+}
+
+void CORE_printhex(const char* str) {
+    for ( int i = 0; i < strlen(str); i++ )
+        printf("%02X ", str[i]);
+    printf("\n");
 }
 
 // char *CORE_readfile( const char* filename ) {

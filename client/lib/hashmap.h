@@ -61,12 +61,15 @@ int HM_set( HM *hashmap, char *strkey, void *item ) {
     size_t key = HM_hash(strkey) % hashmap->size;
     // printf("Create key: %d\n", key);
     HM_pair *pair;
-    if ( hashmap->hashmap[key] == NULL ) { // strncmp(hashmap->hashmap[key]->key, strkey, HM_MAX_KEY_LENGTH)
+    if ( hashmap->hashmap[key] == NULL ) {
         pair = (HM_pair*)calloc(1, sizeof(HM_pair)); // Needs clean up
         pair->item = item;
         strncpy(pair->strkey, strkey, HM_MAX_KEY_LENGTH);
         hashmap->hashmap[key] = pair;
         // printf("New pair\n");
+    }
+    else if ( !strncmp(hashmap->hashmap[key]->strkey, strkey, HM_MAX_KEY_LENGTH) ) {
+        hashmap->hashmap[key]->item = item;
     }
     else {
         pair = hashmap->hashmap[key];
@@ -103,6 +106,7 @@ int HM_set_str( HM *hashmap, char *strkey, char *item, bool free_old ) {
     if ( free_old ) free(HM_get(hashmap, strkey));
     char *buf = calloc(sizeof(item), 1);
     strncpy(buf, item, sizeof(item));
+    buf[sizeof(item)] = 0;
     return HM_set(hashmap, strkey, buf);
 }
 
@@ -174,14 +178,16 @@ int HM_load( HM *hashmap, const char* filename ) {
         if ( strlen(buf) > 3 ) {
             kx = CORE_find_char(buf, ' ');
             ix = CORE_find_char(buf, '\n');
-            if ( kx < HM_MAX_KEY_LENGTH ) CORE_strcpy_s( strkey, buf, kx+1, 0 );
+            if ( kx < HM_MAX_KEY_LENGTH ) { strncpy( strkey, buf, kx+1 ); strkey[kx] = 0; }
             else { fclose(fp); return 1; }
 
             item = (char*)calloc(HM_MAX_STR_ITEM_LENGTH, 1);
-            if ( ix < HM_MAX_FILE_LINE_LENGTH ) CORE_strcpy_s( item, buf, ix-kx, kx+1 );
+            if ( ix < HM_MAX_FILE_LINE_LENGTH ) strncpy( item, buf+kx+1, ix-kx-1 );
             else { fclose(fp); free(item); return 1; }
             
             // printf("|%s|: |%s|\n", strkey, item);
+            // CORE_printhex(strkey);
+            // CORE_printhex(item);
             HM_set(hashmap, strkey, item);
 
             memset(strkey, 0, HM_MAX_KEY_LENGTH);
