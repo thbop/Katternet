@@ -2,6 +2,7 @@
 #define APPLICATION_H
 
 #include "core.h"
+#include "sha-256.h"
 #include "tnetwork.h"
 #include "hashmap.h"
 
@@ -39,8 +40,12 @@ int APP_AuthMe() {
 
     do { printf("Username: "); CORE_input(inbuf, APP_INBUF_SIZE); } while ( strlen(inbuf) < 2 && strlen(inbuf) > 16 );
     HM_set_str(&app.storage, "USERNAME", inbuf, true);
+
     do { printf("Password: "); CORE_input(inbuf, APP_INBUF_SIZE); } while ( strlen(inbuf) < 8 && strlen(inbuf) > 16 );
-    HM_set_str(&app.storage, "TOKEN", inbuf, true); // Needs to be hashed
+    char result_token[65];
+    calc_sha_256_s(result_token, inbuf);
+    HM_set_str(&app.storage, "TOKEN", result_token, true);
+
     HM_dump(&app.storage, APP_STORAGE_FILENAME); // Needs error checking
     
     return 0;

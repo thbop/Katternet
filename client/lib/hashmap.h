@@ -104,9 +104,9 @@ void *HM_get( HM *hashmap, const char* strkey ) {
 
 int HM_set_str( HM *hashmap, char *strkey, char *item, bool free_old ) {
     if ( free_old ) free(HM_get(hashmap, strkey));
-    char *buf = calloc(sizeof(item), 1);
-    strncpy(buf, item, sizeof(item));
-    buf[sizeof(item)] = 0;
+    char *buf = calloc(strlen(item)+1, 1);
+    strncpy(buf, item, strlen(item)+1);
+    buf[strlen(item)] = 0;
     return HM_set(hashmap, strkey, buf);
 }
 

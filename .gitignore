@@ -1,7 +1,5 @@
-
 /.vscode
 *.exe
 /server/.vscode
 /client/.vscode
-client/SHA256.c
-client/Makefile
+*.o
