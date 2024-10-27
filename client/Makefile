@@ -8,7 +8,7 @@ client : client.o lib/sha-256.o
 
 else ifeq ($(OS), Linux)
 client : client.o lib/sha-256.o
-	cc -o clientclient.o lib/sha-256.o -lWs2_32
+	cc -o client client.o lib/sha-256.o
 
 endif
 
