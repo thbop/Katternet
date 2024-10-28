@@ -20,7 +20,7 @@ def connection( conn: socket.socket, conn_addr):
     conn.close()
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-sock.bind(('127.0.0.1', 5000))
+sock.bind(('127.0.0.1', 6410))
 
 print('Listening...')
 while True:

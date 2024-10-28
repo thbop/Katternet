@@ -1,3 +1,5 @@
+// #define TNET_HIDE_ERROR
+
 #include <stdio.h>
 #include "lib/application.h"
 

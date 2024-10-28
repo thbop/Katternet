@@ -9,6 +9,7 @@
 #define APP_STORAGE_FILENAME "storage"
 #define APP_STORAGE_SIZE 16 // Storage will probably operate most efficiently with X number of pairs; this does not limit the number of pairs to X.
 #define APP_INBUF_SIZE 32
+#define APP_PORT "6410"
 
 typedef unsigned int u32;
 
@@ -51,6 +52,13 @@ int APP_AuthMe() {
     return 0;
 }
 
+int APP_Connect() {
+    char coords[16];
+    do { printf("Depot coordinates: "); CORE_input(coords, 16); } while ( strlen(coords) < 7 && strlen(coords) > 15 );
+    app.sock = TNET_Socket(coords, APP_PORT);
+    if ( app.sock == INVALID_SOCKET ) printf("Travel failed!\n");
+}
+
 
 int APP_Run() {
     printf(" _____ _            _   __      _   _                       _   \n|_   _| |          | | / /     | | | |                     | |  \n  | | | |__   ___  | |/ /  __ _| |_| |_ ___ _ __ _ __   ___| |_ \n  | | | '_ \\ / _ \\ |    \\ / _` | __| __/ _ \\ '__| '_ \\ / _ \\ __|\n  | | | | | |  __/ | |\\  \\ (_| | |_| ||  __/ |  | | | |  __/ |_ \n  \\_/ |_| |_|\\___| \\_| \\_/\\__,_|\\__|\\__\\___|_|  |_| |_|\\___|\\__|\n\n");
@@ -66,6 +74,7 @@ int APP_Run() {
         switch (*inbuf) {
             case 'h': printf("h = help, q = quit, g = get, c = connect\n"); break;
             case 'q': running = false; break;
+            case 'c': APP_Connect(); break;
             default: break;
         }
     }
